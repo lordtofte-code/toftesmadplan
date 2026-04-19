@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Familien Toftegaards madplan</title>
+    <style>
+        :root { --primary: #4CAF50; --secondary: #2196F3; --bg: #f4f7f6; --card: #ffffff; --text: #333; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 60px; }
+        header { background: var(--primary); color: white; padding: 1.5rem 1rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        
+        nav { display: flex; justify-content: space-around; background: white; padding: 10px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #ddd; }
+        nav button { background: none; border: none; font-weight: bold; cursor: pointer; padding: 10px; color: #666; font-size: 15px; }
+        nav button.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); }
+        
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .main-btn { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        
+        /* INDKØBSLISTE DESIGN - MOBIL OPTIMERET */
+        .category-header { background: #e8f5e9; color: #2e7d32; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .shop-item { 
+            display: flex; 
+            align-items: flex-start; 
+            padding: 12px 0; 
+            border-bottom: 1px solid #eee; 
+            gap: 12px;
+            width: 100%;
+        }
+        
+        /* Gør tjekboksen større og nemmere at ramme */
+        .shop-checkbox {
+            width: 22px;
+            height: 22px;
+            margin: 0;
+            cursor: pointer;
+            flex-shrink: 0;
+            accent-color: var(--primary);
+        }
+
+        .shop-text-content { 
+            flex: 1; 
+            display: flex; 
+            align-items: flex-start; 
+            font-size: 15px; 
+            line-height: 1.4;
+            min-width: 0; /* Hindrer overflow */
+            cursor: pointer;
+        }
+
+        .shop-qty-box {
+            display: flex;
+            min-width: 75px; /* Fast plads til tal + enhed så navne flugter */
+            flex-shrink: 0;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .shop-amount { margin-right: 4px; }
+        .shop-unit { font-size: 13px; color: #888; font-weight: 400; }
+        
+        .shop-name { 
+            flex: 1; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+            color: #222;
+        }
+        
+        .cat-select-mini {
+            width: 65px;
+            font-size: 11px;
+            padding: 4px;
+            margin: 0;
+            height: 28px;
+            border-color: #eee;
+            flex-shrink: 0;
+        }
+
+        .checked .shop-name, .checked .shop-qty-box { 
+            text-decoration: line-through; 
+            color: #bbb !important; 
+        }
+
+        /* MODAL & ANDET */
+        .modal { display: none; position: fixed; z-index: 200; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; margin: 5% auto; padding: 20px; width: 90%; border-radius: 15px; max-height: 85vh; overflow-y: auto; }
+        .share-btn { background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .small-btn { background: #f0f0f0; border: 1px solid #ccc; padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+        .hidden { display: none; }
+        .day-row { border-left: 5px solid var(--secondary); padding: 10px; margin-bottom: 12px; background: white; border-radius: 0 8px 8px 0; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Familien Toftegaards madplan</h1>
+    <div id="header-week" style="font-size: 0.9rem; opacity: 0.9;">Uge: --</div>
+</header>
+
+<nav>
+    <button onclick="showSection('plan')" id="nav-plan" class="active">Plan</button>
+    <button onclick="showSection('recipes')" id="nav-recipes">Opskrifter</button>
+    <button onclick="showSection('shop')" id="nav-shop">Indkøb</button>
+</nav>
+
+<div class="container">
+    <div id="section-plan" class="section active">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap: 8px;">
+                <select id="week-selector" onchange="changeWeek()" style="width:130px; margin:0;"></select>
+                <button class="share-btn" onclick="sharePlanAsText()">Del plan</button>
+            </div>
+            <div id="week-days"></div>
+            <button class="main-btn" onclick="generateShoppingList()">Generér Indkøbsliste</button>
+        </div>
+    </div>
+
+    <div id="section-recipes" class="section">
+        <div class="card">
+            <h3 id="recipe-title" style="margin-top:0;">Ny Opskrift</h3>
+            <input type="hidden" id="r-id">
+            <input type="text" id="r-name" placeholder="Navn på ret (f.eks. Lasagne)">
+            <input type="number" id="r-servings" placeholder="Antal personer (standard)">
+            <button class="small-btn" onclick="toggleSmartImport()" style="background:#fff9c4; width:100%; margin-bottom:10px; border:1px solid #fbc02d;">Hurtig-indsæt ingredienser</button>
+            <div id="smart-import-area" class="hidden">
+                <textarea id="smart-text" placeholder="Indsæt liste herfra... f.eks:&#10;500g hakket oksekød&#10;1 løg" style="height:120px;"></textarea>
+                <button class="main-btn" onclick="processSmartImport()">Fordel til felter</button>
+            </div>
+            <div id="ingredient-inputs"></div>
+            <button class="small-btn" onclick="addIngRow()" style="width:100%; margin-top:5px;">+ Tilføj række</button>
+            <textarea id="r-steps" placeholder="Fremgangsmåde..." style="margin-top:15px; height:100px;"></textarea>
+            <button class="main-btn" onclick="saveRecipe()">Gem Opskrift</button>
+            <button class="small-btn hidden" id="cancel-edit-btn" onclick="cancelEdit()" style="margin-top:10px; width:100%;">Annuller redigering</button>
+        </div>
+        <div id="recipe-list-container"></div>
+    </div>
+
+    <div id="section-shop" class="section">
+        <div class="card">
+            <h3 style="margin-top:0;">Hurtig tilføj</h3>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="quick-add-input" placeholder="Mælk, rugbrød..." style="margin:0;">
+                <button onclick="quickAdd()" class="main-btn" style="width:70px; margin:0;">+</button>
+            </div>
+        </div>
+        <div class="card" style="padding-top: 5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin:0;">Indkøbsliste</h3>
+                <button onclick="toggleHideChecked()" id="btn-hide" class="small-btn">Skjul købte</button>
+            </div>
+            <div id="shop-list"></div>
+            <div style="margin-top:25px; display:flex; gap:12px;">
+                <button onclick="copyShopToClipboard()" class="main-btn" style="background:var(--secondary); flex:1;">Del SMS</button>
+                <button onclick="clearShop()" class="main-btn" style="background:#ff5252; flex:1;">Ryd alt</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="recipeModal" class="modal">
+    <div class="modal-content">
+        <div id="modal-body"></div>
+        <button class="main-btn" style="margin-top:20px;" onclick="closeModal()">Luk</button>
+    </div>
+</div>
+
+<script>
+    let recipes = JSON.parse(localStorage.getItem('mp_recipes')) || [];
+    let allPlans = JSON.parse(localStorage.getItem('mp_plans')) || {};
+    let shoppingList = JSON.parse(localStorage.getItem('mp_shop')) || [];
+    let hideChecked = false;
+    const unitOptions = ["stk", "gram", "Kilo", "liter", "dl", "dåser", "pk", "bundt", "spsk", "tsk", "fed", "bakke"];
+    const days = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag', 'Søndag'];
+    const categories = ['Grønt', 'Kød', 'Mejeri', 'Frost', 'Kolonial', 'Andet'];
+
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+    }
+    const realCurrentWeek = getWeekNumber(new Date());
+    let currentWeek = realCurrentWeek;
+
+    function init() {
+        const selector = document.getElementById('week-selector');
+        document.getElementById('header-week').innerText = "Uge: " + realCurrentWeek;
+        for(let i=1; i<=52; i++) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.innerText = (i === realCurrentWeek) ? "⭐ Uge " + i : "Uge " + i;
+            selector.appendChild(opt);
+        }
+        selector.value = realCurrentWeek;
+        if (document.getElementById('ingredient-inputs').children.length === 0) addIngRow();
+        renderPlan();
+    }
+
+    // --- GENERER INDKØB ---
+    function generateShoppingList() {
+        let totals = {};
+        const weekData = allPlans[currentWeek] || {};
+        
+        days.forEach(day => {
+            const data = weekData[day];
+            if(data && data.meal) {
+                const r = recipes.find(rec => rec.name.trim() === data.meal.trim());
+                if(r && r.ing_new) {
+                    r.ing_new.forEach(i => {
+                        const originalServings = parseFloat(r.servings) || 2;
+                        const planServings = parseFloat(data.servings) || 4;
+                        const factor = planServings / originalServings;
+                        const amount = (parseFloat(i.amount) || 0) * factor;
+                        const key = `${i.name.trim().toLowerCase()}_${(i.unit || 'stk').toLowerCase()}`;
+                        
+                        if(!totals[key]) {
+                            totals[key] = { amount: 0, unit: i.unit || 'stk', name: i.name.trim(), cat: 'Andet' };
+                        }
+                        totals[key].amount += amount;
+                    });
+                }
+            }
+        });
+
+        const manualItems = shoppingList.filter(i => i.isManual && !i.checked);
+        const newShopItems = Object.values(totals).map(t => ({
+            amount: Math.round(t.amount * 10) / 10,
+            unit: t.unit,
+            name: t.name,
+            cat: 'Andet',
+            checked: false,
+            isManual: false
+        }));
+
+        shoppingList = [...newShopItems, ...manualItems];
+        saveAll();
+        showSection('shop');
+        renderShop();
+        alert("Indkøbsliste opdateret!");
+    }
+
+    // --- RENDER INDKØBSLISTE (RETTET DESIGN) ---
+    function renderShop() {
+        const cont = document.getElementById('shop-list'); 
+        cont.innerHTML = '';
+        
+        if (shoppingList.length === 0) {
+            cont.innerHTML = '<p style="text-align:center; color:#888; margin:20px;">Listen er tom. Tilføj varer eller generér fra madplanen.</p>';
+            return;
+        }
+
+        categories.forEach(cat => {
+            let items = shoppingList.filter(i => i.cat === cat);
+            if(hideChecked) items = items.filter(i => !i.checked);
+            
+            if(items.length > 0) {
+                cont.innerHTML += `<div class="category-header">${cat}</div>`;
+                items.forEach((item) => {
+                    const cleanName = item.name.replace(/'/g, "\\'");
+                    const itemClass = item.checked ? 'shop-item checked' : 'shop-item';
+                    
+                    cont.innerHTML += `
+                        <div class="${itemClass}">
+                            <input type="checkbox" class="shop-checkbox" ${item.checked?'checked':''} 
+                                onchange="toggleItem('${cleanName}', '${item.unit}', ${item.amount || 0})">
+                            
+                            <div class="shop-text-content" onclick="toggleItem('${cleanName}', '${item.unit}', ${item.amount || 0})">
+                                <div class="shop-qty-box">
+                                    <span class="shop-amount">${item.amount || ''}</span>
+                                    <span class="shop-unit">${item.unit || ''}</span>
+                                </div>
+                                <div class="shop-name">${item.name}</div>
+                            </div>
+
+                            <select class="cat-select-mini" onchange="setCat('${cleanName}', this.value)">
+                                ${categories.map(c => `<option value="${c}" ${c===cat?'selected':''}>${c.substring(0,3)}</option>`).join('')}
+                            </select>
+                        </div>`;
+                });
+            }
+        });
+    }
+
+    // --- CLIPBOARD & DELING ---
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            alert("Kopieret til udklipsholder!");
+        } catch (err) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert("Kopieret!");
+        }
+    }
+
+    function sharePlanAsText() {
+        const weekData = allPlans[currentWeek] || {};
+        let text = `📅 *MADPLAN UGE ${currentWeek}*\n\n`;
+        let hasData = false;
+        days.forEach(day => {
+            if(weekData[day] && weekData[day].meal) {
+                text += `*${day}:* ${weekData[day].meal}\n`;
+                hasData = true;
+            }
+        });
+        if(!hasData) return alert("Planen er tom.");
+        copyToClipboard(text);
+    }
+
+    function copyShopToClipboard() {
+        if(shoppingList.length === 0) return alert("Listen er tom.");
+        let text = `🛒 *INDKØBSLISTE - UGE ${currentWeek}*\n\n`;
+        let hasItems = false;
+        
+        categories.forEach(cat => {
+            const items = shoppingList.filter(i => i.cat === cat && !i.checked);
+            if(items.length > 0) {
+                text += `*[ ${cat.toUpperCase()} ]*\n`;
+                items.forEach(i => {
+                    const qty = i.amount ? `${i.amount} ` : '';
+                    const unit = i.unit ? `${i.unit} ` : '';
+                    text += `☐ ${qty}${unit}${i.name}\n`;
+                });
+                text += `\n`;
+                hasItems = true;
+            }
+        });
+        
+        if(!hasItems) return alert("Ingen varer at dele (måske er alle tjekket af?).");
+        copyToClipboard(text);
+    }
+
+    // --- STANDARD SYSTEM LOGIK ---
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('section-' + id).classList.add('active');
+        document.getElementById('nav-' + id).classList.add('active');
+        if(id === 'recipes') renderRecipes();
+        if(id === 'shop') renderShop();
+    }
+
+    function addIngRow(amount = '', unit = 'stk', name = '') {
+        const cont = document.getElementById('ingredient-inputs');
+        const div = document.createElement('div');
+        div.className = 'ing-row';
+        let unitHtml = `<select class="ing-unit" style="flex:3; margin:0;">`;
+        unitOptions.forEach(opt => { unitHtml += `<option value="${opt}" ${opt.toLowerCase() === unit.toLowerCase() ? 'selected' : ''}>${opt}</option>`; });
+        unitHtml += `</select>`;
+        div.innerHTML = `
+            <input type="number" step="any" class="ing-amount" placeholder="Tal" style="flex:2; margin:0;" value="${amount}">
+            ${unitHtml}
+            <input type="text" class="ing-name" placeholder="Vare..." style="flex:5; margin:0;" value="${name}">
+            <button onclick="this.parentElement.remove()" style="border:none; background:none; color:red; font-size:22px;">&times;</button>
+        `;
+        cont.appendChild(div);
+    }
+
+    function saveRecipe() {
+        const name = document.getElementById('r-name').value;
+        if(!name) return alert("Giv retten et navn.");
+        const id = document.getElementById('r-id').value;
+        const servings = parseInt(document.getElementById('r-servings').value) || 2;
+        const steps = document.getElementById('r-steps').value;
+        const ingRows = document.querySelectorAll('.ing-row');
+        let ingredients = [];
+        ingRows.forEach(row => {
+            const vName = row.querySelector('.ing-name').value;
+            if(vName) ingredients.push({ 
+                amount: row.querySelector('.ing-amount').value, 
+                unit: row.querySelector('.ing-unit').value, 
+                name: vName 
+            });
+        });
+        const recipeObj = { id: id ? parseInt(id) : Date.now(), name, servings, ing_new: ingredients, steps };
+        if(id) { 
+            const idx = recipes.findIndex(r => r.id == id);
+            recipes[idx] = recipeObj;
+        } else {
+            recipes.push(recipeObj);
+        }
+        localStorage.setItem('mp_recipes', JSON.stringify(recipes));
+        cancelEdit();
+        renderRecipes();
+        alert("Opskrift gemt!");
+    }
+
+    function renderRecipes() {
+        const cont = document.getElementById('recipe-list-container');
+        cont.innerHTML = '<h3 style="margin-top:20px;">Mine Opskrifter</h3>';
+        recipes.sort((a,b) => a.name.localeCompare(b.name)).forEach(r => { 
+            cont.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px;">
+                <span style="font-weight:bold; cursor:pointer; flex:1;" onclick='showRecipeModal(${JSON.stringify(r).replace(/'/g, "&apos;")})'>${r.name}</span>
+                <button onclick="editRecipe(${r.id})" style="background:none; border:none; color:var(--secondary); font-weight:bold; margin-right:15px;">RET</button>
+                <button onclick="deleteRecipe(${r.id})" style="background:none; border:none; color:red; font-size:20px;">&times;</button>
+            </div>`; 
+        });
+    }
+
+    function renderPlan() {
+        const cont = document.getElementById('week-days');
+        cont.innerHTML = '';
+        const weekData = allPlans[currentWeek] || {};
+        days.forEach(day => {
+            const data = weekData[day] || { meal: '', servings: 4 };
+            const div = document.createElement('div');
+            div.className = 'day-row';
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <span style="font-weight:bold;">${day}</span>
+                    <span style="color:var(--secondary); font-size:12px; font-weight:bold;" onclick="openRecipeByName('${data.meal.replace(/'/g, "\\'")}', ${data.servings})">OPSKRIFT</span>
+                </div>
+                <input type="text" placeholder="Hvad skal I have at spise?" value="${data.meal}" oninput="updateMeal('${day}', this.value)" autocomplete="off">
+                <div id="sug-${day}" class="suggestions"></div>
+                <div style="font-size:12px; color:#666;">Antal personer: <input type="number" value="${data.servings}" style="width:45px; padding:2px; border:none; font-weight:bold; color:var(--primary);" onchange="updateServings('${day}', this.value)"></div>
+            `;
+            cont.appendChild(div);
+        });
+    }
+
+    function toggleItem(name, unit, amount) { 
+        let i = shoppingList.find(x => x.name === name && x.unit === unit && (x.amount || 0) == amount); 
+        if(i) i.checked = !i.checked; 
+        saveAll(); renderShop(); 
+    }
+
+    function quickAdd() { 
+        const input = document.getElementById('quick-add-input'); 
+        if(!input.value) return; 
+        shoppingList.push({ name: input.value, amount: '', unit: '', cat: 'Andet', checked: false, isManual: true }); 
+        input.value = ''; saveAll(); renderShop(); 
+    }
+
+    function updateMeal(day, val) {
+        if(!allPlans[currentWeek]) allPlans[currentWeek] = {};
+        allPlans[currentWeek][day] = allPlans[currentWeek][day] || { servings: 4 };
+        allPlans[currentWeek][day].meal = val;
+        saveAll();
+        const sug = document.getElementById(`sug-${day}`);
+        const matches = recipes.filter(r => r.name.toLowerCase().includes(val.toLowerCase()));
+        if(val.length > 1 && matches.length > 0) {
+            sug.style.display = 'block';
+            sug.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="pick('${day}','${m.name.replace(/'/g, "\\'")}',${m.servings})">🍴 ${m.name}</div>`).join('');
+        } else { sug.style.display = 'none'; }
+    }
+    
+    function pick(day, name, serv) { 
+        allPlans[currentWeek][day].meal = name; 
+        allPlans[currentWeek][day].servings = serv; 
+        saveAll(); renderPlan(); 
+    }
+
+    function saveAll() { localStorage.setItem('mp_plans', JSON.stringify(allPlans)); localStorage.setItem('mp_shop', JSON.stringify(shoppingList)); }
+    function changeWeek() { currentWeek = parseInt(document.getElementById('week-selector').value); renderPlan(); }
+    function toggleHideChecked() { hideChecked = !hideChecked; document.getElementById('btn-hide').innerText = hideChecked ? "Vis alle" : "Skjul købte"; renderShop(); }
+    function setCat(name, cat) { let i = shoppingList.find(x => x.name === name); if(i) i.cat = cat; saveAll(); renderShop(); }
+    function clearShop() { if(confirm("Vil du slette hele listen?")) { shoppingList = []; saveAll(); renderShop(); } }
+    function toggleSmartImport() { document.getElementById('smart-import-area').classList.toggle('hidden'); }
+    function closeModal() { document.getElementById('recipeModal').style.display = "none"; }
+    
+    function deleteRecipe(id) { if(confirm("Slet opskrift?")) { recipes = recipes.filter(r => r.id !== id); localStorage.setItem('mp_recipes', JSON.stringify(recipes)); renderRecipes(); } }
+
+    function editRecipe(id) {
+        const r = recipes.find(rec => rec.id == id);
+        if(!r) return;
+        document.getElementById('r-id').value = r.id;
+        document.getElementById('r-name').value = r.name;
+        document.getElementById('r-servings').value = r.servings;
+        document.getElementById('r-steps').value = r.steps;
+        document.getElementById('ingredient-inputs').innerHTML = '';
+        r.ing_new.forEach(i => addIngRow(i.amount, i.unit, i.name));
+        document.getElementById('recipe-title').innerText = "Rediger: " + r.name;
+        document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        window.scrollTo(0,0);
+    }
+
+    function cancelEdit() {
+        document.getElementById('r-id').value = '';
+        document.getElementById('r-name').value = '';
+        document.getElementById('r-servings').value = '';
+        document.getElementById('r-steps').value = '';
+        document.getElementById('ingredient-inputs').innerHTML = '';
+        addIngRow();
+        document.getElementById('recipe-title').innerText = "Ny Opskrift";
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+    }
+
+    function processSmartImport() {
+        const text = document.getElementById('smart-text').value;
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            if(line.trim() === '') return;
+            const match = line.match(/^(\d+[\.,]?\d*)\s*(\w+)?\s*(.*)$/);
+            if(match) {
+                addIngRow(match[1], match[2] || 'stk', match[3] || '');
+            } else {
+                addIngRow('', 'stk', line.trim());
+            }
+        });
+        document.getElementById('smart-text').value = '';
+        toggleSmartImport();
+    }
+
+    function showRecipeModal(r, initialServings = null) {
+        const modal = document.getElementById('recipeModal');
+        const s = initialServings || r.servings || 2;
+        const factor = s / (r.servings || 2);
+        let html = `<h2 style="color:var(--primary); margin-top:0;">${r.name}</h2>`;
+        html += `<p><b>Antal:</b> ${s} personer</p><h3>Ingredienser:</h3><ul>`;
+        r.ing_new.forEach(i => {
+            const amt = i.amount ? (parseFloat(i.amount) * factor).toFixed(1).replace('.0', '') : '';
+            html += `<li>${amt} ${i.unit} ${i.name}</li>`;
+        });
+        html += `</ul><h3>Fremgangsmåde:</h3><p style="white-space:pre-line;">${r.steps || 'Ingen instruktioner.'}</p>`;
+        document.getElementById('modal-body').innerHTML = html;
+        modal.style.display = "block";
+    }
+
+    function openRecipeByName(name, currentServings) {
+        const r = recipes.find(rec => rec.name === name);
+        if(r) showRecipeModal(r, currentServings);
+        else alert("Opskrift ikke fundet.");
+    }
+
+    init();
+</script>
+</body>
+</html>
